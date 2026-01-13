@@ -1,73 +1,66 @@
 import os
 import logging
-
 from aiogram import Bot, Dispatcher, executor, types
-from aiogram.dispatcher.filters import Command
 from langdetect import detect
-
 from openai import OpenAI
+
+# ================== SOZLAMALAR ==================
+logging.basicConfig(level=logging.INFO)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# ================== /start ==================
+@dp.message_handler(commands=["start"])
+async def start_handler(message: types.Message):
+    await message.reply("Matn yuboring.")
 
-@dp.message_handler(Command("start"))
-async def start(message: types.Message):
-    await message.answer("Matn yuboring.")
+# ================== TARJIMA ==================
+def translate_text(text: str) -> str:
+    lang = detect(text)
 
-
-@dp.message_handler(content_types=types.ContentType.TEXT)
-async def translate(message: types.Message):
-    text = message.text.strip()
-
-    try:
-        lang = detect(text)
-    except:
-        return
-
-    # 🇷🇺 → 🇺🇿
     if lang == "ru":
-        prompt = f"""
-Sen professional tarjimonsan.
-Agar bitta so‘z bo‘lsa — uning 3-5 ta eng mos, tabiiy o‘zbekcha variantlarini chiqar.
-Agar gap bo‘lsa — uni chiroyli va odamga o‘xshab tarjima qil.
-Hech qanday izoh yozma, faqat tarjimani yoz.
-
-Matn: {text}
-"""
-
-    # 🇺🇿 → 🇷🇺
-    elif lang == "uz":
-        prompt = f"""
-Ты профессиональный переводчик.
-Если это одно слово — дай 3–5 наиболее естественных вариантов перевода.
-Если это предложение — переведи его живо, по-человечески.
-Без объяснений, только перевод.
-
-Текст: {text}
-"""
-
+        direction = "rus tilidan o‘zbek tiliga"
     else:
-        return
+        direction = "o‘zbek tilidan rus tiliga"
+
+    prompt = f"""
+Siz professional tarjimonsiz.
+Matnni {direction} tabiiy, insondek va ma'noli tarjima qiling.
+
+Agar bitta so‘z bo‘lsa — 3–5 ta mos tarjima variantini vergul bilan ajrating.
+Hech qanday izoh, sarlavha yoki qo‘shimcha so‘z yozmang.
+
+Matn:
+{text}
+"""
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
+            {"role": "system", "content": "You are a professional human translator."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7
+        temperature=0.4
     )
 
-    result = response.choices[0].message.content.strip()
-    await message.answer(result)
+    return response.choices[0].message.content.strip()
 
+# ================== ODDIY MATN ==================
+@dp.message_handler(content_types=types.ContentTypes.TEXT)
+async def text_handler(message: types.Message):
+    try:
+        result = translate_text(message.text)
+        await message.reply(result)
+    except Exception as e:
+        logging.error(e)
+        await message.reply("Xatolik yuz berdi, keyinroq urinib ko‘ring.")
 
+# ================== START ==================
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
