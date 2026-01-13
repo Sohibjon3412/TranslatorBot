@@ -1,0 +1,2 @@
+Set wshShell = CreateObject("WScript.Shell")
+WshShell.Run "C:User\Public\Translator\start_bot.bat", 0, False
