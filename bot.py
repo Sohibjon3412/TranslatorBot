@@ -1,7 +1,7 @@
 # ==== TELEGRAM_BOT_TOKEN = "8342487953:AAF-2vuHrkiA7020Dw78sxmX29rug__AzlQ" ====
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
+from aiogram.dispatcher.filters import Command
 from openai import OpenAI
 
 # ================== SOZLAMALAR ==================
