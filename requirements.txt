@@ -2,3 +2,4 @@ aiogram==2.25.1
 langdetect
 openai
 python-dotenv
+python-telegram-bot
