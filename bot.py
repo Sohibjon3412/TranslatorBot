@@ -21,16 +21,14 @@ async def start_handler(message: types.Message):
 
 
 def is_single_word(text: str) -> bool:
-    # Faqat bitta so‘z bo‘lsa TRUE
-    words = text.strip().split()
-    return len(words) == 1
+    return len(text.strip().split()) == 1
 
 
-def translate_text(text: str) -> str:
-    lang = detect(text)
+def translate(text: str) -> str:
+    src_lang = detect(text)
     single_word = is_single_word(text)
 
-    if lang == "ru":
+    if src_lang == "ru":
         target_lang = "o‘zbek"
         direction = "rus tilidan o‘zbek tiliga"
     else:
@@ -38,7 +36,7 @@ def translate_text(text: str) -> str:
         direction = "o‘zbek tilidan rus tiliga"
 
     if single_word:
-        # FAQAT 1 TA SO‘Z BO‘LSA — TARJIMA VARIANTLARI
+        # 🔒 FAQAT TARJIMA VARIANTLARI (ASL TIL QAYTMASIN)
         prompt = f"""
 Siz professional tarjimonsiz.
 
@@ -46,16 +44,16 @@ Quyidagi so‘zni {direction} tarjima qiling.
 
 QOIDALAR:
 - Faqat {target_lang} tilida yozing
-- Asl tilidagi so‘zni qaytarmang
-- 3–5 ta MA’NOLI tarjima variantini vergul bilan ajrating
-- Sinonim emas, TARJIMA variantlari bo‘lsin
-- Hech qanday izoh yoki qo‘shimcha yozmang
+- Asl tilidagi so‘zlarni QAYTARMANG
+- 3–5 ta MA’NOLI TARJIMA variantini vergul bilan ajrating
+- Sinonim emas, TARJIMA bo‘lsin
+- Hech qanday izoh, belgi yoki tushuntirish yozmang
 
 So‘z:
 {text}
 """
     else:
-        # 2 TA VA UNDAN KO‘P SO‘Z — HAR DOIM TARJIMA
+        # 🔒 HAR DOIM ODDIY TARJIMA
         prompt = f"""
 Siz professional tarjimonsiz.
 
@@ -64,8 +62,8 @@ Quyidagi matnni {direction} MA’NOLI qilib tarjima qiling.
 QOIDALAR:
 - Faqat {target_lang} tilida yozing
 - So‘zma-so‘z emas, mazmunan tarjima qiling
-- Asl matndan hech qanday so‘z qoldirmang
-- Hech qanday izoh, sarlavha yoki belgi qo‘shmang
+- Asl tilidagi iboralarni qoldirmang
+- Hech qanday izoh yoki qo‘shimcha yozmang
 
 Matn:
 {text}
@@ -77,7 +75,7 @@ Matn:
             {"role": "system", "content": "You are a strict professional translator."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.3
+        temperature=0.2
     )
 
     return response.choices[0].message.content.strip()
@@ -86,7 +84,7 @@ Matn:
 @dp.message_handler(content_types=types.ContentTypes.TEXT)
 async def text_handler(message: types.Message):
     try:
-        result = translate_text(message.text)
+        result = translate(message.text)
         await message.reply(result)
     except Exception as e:
         logging.error(e)
