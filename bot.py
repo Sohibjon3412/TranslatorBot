@@ -1,7 +1,8 @@
 import logging
-from aiogram import Bot, Dispatcher, executor, types
-from langdetect import detect
 import os
+import re
+from aiogram import Bot, Dispatcher, executor, types
+from googletrans import Translator
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -9,17 +10,11 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+translator = Translator()
 
 
-UZ_RU = {
-    "salom": ["Привет", "Здравствуйте", "Добрый день"],
-    "rahmat": ["Спасибо", "Благодарю"],
-}
-
-RU_UZ = {
-    "привет": ["Salom", "Assalomu alaykum"],
-    "здравствуйте": ["Salom", "Assalomu alaykum"],
-}
+def is_cyrillic(text: str) -> bool:
+    return bool(re.search(r"[А-Яа-я]", text))
 
 
 def is_single_word(text: str) -> bool:
@@ -36,33 +31,43 @@ async def translate(message: types.Message):
     text = message.text.strip()
 
     try:
-        lang = detect(text)
-    except:
-        await message.answer("Tilni aniqlab bo‘lmadi.")
-        return
+        # 🇷🇺 RUS → 🇺🇿
+        if is_cyrillic(text):
+            if is_single_word(text):
+                result = translator.translate(text, src="ru", dest="uz")
+                variants = result.extra_data.get("all-translations")
 
-    # --- O‘ZBEK → RUS ---
-    if lang == "uz":
-        key = text.lower()
+                if variants:
+                    translations = {t[0] for group in variants for t in group[1]}
+                    await message.answer("\n".join(list(translations)[:5]))
+                else:
+                    await message.answer(result.text)
+            else:
+                await message.answer(
+                    translator.translate(text, src="ru", dest="uz").text
+                )
 
-        if is_single_word(text) and key in UZ_RU:
-            await message.answer("\n".join(UZ_RU[key]))
+        # 🇺🇿 O‘ZBEK → 🇷🇺
         else:
-            await message.answer("Bu matn rus tiliga tarjima qilinadi.")
+            if is_single_word(text):
+                result = translator.translate(text, src="uz", dest="ru")
+                variants = result.extra_data.get("all-translations")
 
-    # --- RUS → O‘ZBEK ---
-    elif lang == "ru":
-        key = text.lower()
+                if variants:
+                    translations = {t[0] for group in variants for t in group[1]}
+                    await message.answer("\n".join(list(translations)[:5]))
+                else:
+                    await message.answer(result.text)
+            else:
+                await message.answer(
+                    translator.translate(text, src="uz", dest="ru").text
+                )
 
-        if is_single_word(text) and key in RU_UZ:
-            await message.answer("\n".join(RU_UZ[key]))
-        else:
-            await message.answer("Bu matn o‘zbek tiliga tarjima qilinadi.")
-
-    else:
-        await message.answer("Faqat o‘zbek yoki rus tilida yozing.")
+    except Exception as e:
+        logging.error(e)
+        await message.answer("Xatolik yuz berdi.")
 
 
 if __name__ == "__main__":
-    print("🔥 NEW BOT VERSION LOADED 🔥")
+    print("✅ Translator bot started (FINAL VERSION)")
     executor.start_polling(dp, skip_updates=True)
