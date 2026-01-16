@@ -20,35 +20,52 @@ async def start_handler(message: types.Message):
     await message.reply("Matn yuboring.")
 
 
+def is_single_word(text: str) -> bool:
+    # Faqat bitta so‘z bo‘lsa TRUE
+    words = text.strip().split()
+    return len(words) == 1
+
+
 def translate_text(text: str) -> str:
     lang = detect(text)
+    single_word = is_single_word(text)
 
     if lang == "ru":
-        # RUS -> O‘ZBEK
+        target_lang = "o‘zbek"
+        direction = "rus tilidan o‘zbek tiliga"
+    else:
+        target_lang = "rus"
+        direction = "o‘zbek tilidan rus tiliga"
+
+    if single_word:
+        # FAQAT 1 TA SO‘Z BO‘LSA — TARJIMA VARIANTLARI
         prompt = f"""
 Siz professional tarjimonsiz.
-Quyidagi ruscha matnni FAQAT o‘zbek tiliga tarjima qiling.
 
-MUHIM QOIDALAR:
-- Ruscha so‘zlarni QAYTA YOZMANG
-- Faqat o‘zbekcha tarjimalarni yozing
-- Agar bitta so‘z bo‘lsa — 3–5 ta O‘ZBEKCHA tarjima variantini pastki qatordan yozing
-- Hech qanday izoh, sarlavha yoki qo‘shimcha yozmang
+Quyidagi so‘zni {direction} tarjima qiling.
 
-Matn:
+QOIDALAR:
+- Faqat {target_lang} tilida yozing
+- Asl tilidagi so‘zni qaytarmang
+- 3–5 ta MA’NOLI tarjima variantini vergul bilan ajrating
+- Sinonim emas, TARJIMA variantlari bo‘lsin
+- Hech qanday izoh yoki qo‘shimcha yozmang
+
+So‘z:
 {text}
 """
     else:
-        # O‘ZBEK -> RUS
+        # 2 TA VA UNDAN KO‘P SO‘Z — HAR DOIM TARJIMA
         prompt = f"""
 Siz professional tarjimonsiz.
-Quyidagi o‘zbekcha matnni FAQAT rus tiliga tarjima qiling.
 
-MUHIM QOIDALAR:
-- O‘zbekcha so‘zlarni QAYTA YOZMANG
-- Faqat ruscha tarjimalarni yozing
-- Agar bitta so‘z bo‘lsa — 3–5 ta RUSCHA tarjima variantini pastki qatordan yozing
-- Hech qanday izoh, sarlavha yoki qo‘shimcha yozmang
+Quyidagi matnni {direction} MA’NOLI qilib tarjima qiling.
+
+QOIDALAR:
+- Faqat {target_lang} tilida yozing
+- So‘zma-so‘z emas, mazmunan tarjima qiling
+- Asl matndan hech qanday so‘z qoldirmang
+- Hech qanday izoh, sarlavha yoki belgi qo‘shmang
 
 Matn:
 {text}
