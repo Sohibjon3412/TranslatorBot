@@ -1,3 +1,4 @@
+print("🔥 NEW BOT VERSION LOADED 🔥")
 import os
 import logging
 from aiogram import Bot, Dispatcher, executor, types
