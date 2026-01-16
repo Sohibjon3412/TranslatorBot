@@ -1,96 +1,68 @@
-print("🔥 NEW BOT VERSION LOADED 🔥")
-import os
 import logging
 from aiogram import Bot, Dispatcher, executor, types
 from langdetect import detect
-from openai import OpenAI
-
-logging.basicConfig(level=logging.INFO)
+import os
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
+logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
 
-client = OpenAI(api_key=OPENAI_API_KEY)
 
+UZ_RU = {
+    "salom": ["Привет", "Здравствуйте", "Добрый день"],
+    "rahmat": ["Спасибо", "Благодарю"],
+}
 
-@dp.message_handler(commands=["start"])
-async def start_handler(message: types.Message):
-    await message.reply("Matn yuboring...")
+RU_UZ = {
+    "привет": ["Salom", "Assalomu alaykum"],
+    "здравствуйте": ["Salom", "Assalomu alaykum"],
+}
 
 
 def is_single_word(text: str) -> bool:
     return len(text.strip().split()) == 1
 
 
-def translate(text: str) -> str:
-    src_lang = detect(text)
-    single_word = is_single_word(text)
-
-    if src_lang == "ru":
-        target_lang = "o‘zbek"
-        direction = "rus tilidan o‘zbek tiliga"
-    else:
-        target_lang = "rus"
-        direction = "o‘zbek tilidan rus tiliga"
-
-    if single_word:
-        # 🔒 FAQAT TARJIMA VARIANTLARI (ASL TIL QAYTMASIN)
-        prompt = f"""
-Siz professional tarjimonsiz.
-
-Quyidagi so‘zni {direction} tarjima qiling.
-
-QOIDALAR:
-- Faqat {target_lang} tilida yozing
-- Asl tilidagi so‘zlarni QAYTARMANG
-- 3–5 ta MA’NOLI TARJIMA variantini vergul bilan ajrating
-- Sinonim emas, TARJIMA bo‘lsin
-- Hech qanday izoh, belgi yoki tushuntirish yozmang
-
-So‘z:
-{text}
-"""
-    else:
-        # 🔒 HAR DOIM ODDIY TARJIMA
-        prompt = f"""
-Siz professional tarjimonsiz.
-
-Quyidagi matnni {direction} MA’NOLI qilib tarjima qiling.
-
-QOIDALAR:
-- Faqat {target_lang} tilida yozing
-- So‘zma-so‘z emas, mazmunan tarjima qiling
-- Asl tilidagi iboralarni qoldirmang
-- Hech qanday izoh yoki qo‘shimcha yozmang
-
-Matn:
-{text}
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a strict professional translator."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2
-    )
-
-    return response.choices[0].message.content.strip()
+@dp.message_handler(commands=["start"])
+async def start_cmd(message: types.Message):
+    await message.answer("Matn yuboring.")
 
 
-@dp.message_handler(content_types=types.ContentTypes.TEXT)
-async def text_handler(message: types.Message):
+@dp.message_handler()
+async def translate(message: types.Message):
+    text = message.text.strip()
+
     try:
-        result = translate(message.text)
-        await message.reply(result)
-    except Exception as e:
-        logging.error(e)
-        await message.reply("Xatolik yuz berdi.")
+        lang = detect(text)
+    except:
+        await message.answer("Tilni aniqlab bo‘lmadi.")
+        return
+
+    # --- O‘ZBEK → RUS ---
+    if lang == "uz":
+        key = text.lower()
+
+        if is_single_word(text) and key in UZ_RU:
+            await message.answer("\n".join(UZ_RU[key]))
+        else:
+            await message.answer("Bu matn rus tiliga tarjima qilinadi.")
+
+    # --- RUS → O‘ZBEK ---
+    elif lang == "ru":
+        key = text.lower()
+
+        if is_single_word(text) and key in RU_UZ:
+            await message.answer("\n".join(RU_UZ[key]))
+        else:
+            await message.answer("Bu matn o‘zbek tiliga tarjima qilinadi.")
+
+    else:
+        await message.answer("Faqat o‘zbek yoki rus tilida yozing.")
 
 
 if __name__ == "__main__":
+    print("🔥 NEW BOT VERSION LOADED 🔥")
     executor.start_polling(dp, skip_updates=True)
