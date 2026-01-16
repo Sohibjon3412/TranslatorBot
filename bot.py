@@ -18,7 +18,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 @dp.message_handler(commands=["start"])
 async def start_handler(message: types.Message):
-    await message.reply("Matn yuboring.")
+    await message.reply("Matn yuboring...")
 
 
 def is_single_word(text: str) -> bool:
