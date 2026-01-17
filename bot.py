@@ -34,6 +34,10 @@ Rules:
 - Do NOT add labels or extra words.
 - If the input is ONE WORD, return several natural translation variants separated by commas.
 - If the input is a sentence or longer, return ONE smooth translation.
+You are a professional human translator.
+Translate naturally, not word by word.
+Preserve slang, RP style and emotions.
+Make the translation sound native in Russian.
 """
 
     response = requests.post(
